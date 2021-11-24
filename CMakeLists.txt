@@ -8,3 +8,4 @@ project ("CoroutineLib")
 # Include sub-projects.
 add_subdirectory ("CoroutineLib")
 add_subdirectory ("CoroutineTest")
+add_subdirectory ("AmbitionLib")
