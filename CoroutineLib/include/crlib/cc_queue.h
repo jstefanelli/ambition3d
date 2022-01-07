@@ -5,8 +5,10 @@
 #include <vector>
 #include "cc_api.h"
 
-namespace crlib {
+#define CRLIB_USE_NEW_QUEUE
 
+namespace crlib {
+#ifndef CRLIB_USE_NEW_QUEUE
 template<typename T>
 struct Concurrent_Queue_t {
 protected:
@@ -122,5 +124,55 @@ public:
 		return val;
 	}
 };
+#else
+template<typename T>
+struct Concurrent_Queue_t {
+protected:
+	struct Queue_Item_t {
+		std::optional<T> value;
+		std::shared_ptr<Queue_Item_t> next;
 
+		Queue_Item_t(const T item) {
+			value = item;
+			next = nullptr;
+		}
+	};
+public:
+	Concurrent_Queue_t() {
+		head.store(nullptr);
+		tail.store(nullptr);
+	}
+
+	void Push(const T item) {
+		auto t = std::shared_ptr<Queue_Item_t>(new Queue_Item_t(item));
+
+		std::shared_ptr<Queue_Item_t> last;
+		do {
+			last = tail.load();
+		} while (!tail.compare_exchange_weak(last, t, std::memory_order_release, std::memory_order_relaxed));
+		
+		if (last != nullptr) {
+			last->next = t;
+		}
+
+		std::shared_ptr<Queue_Item_t> first;
+		do {
+			first = head.load();
+		} while (first == nullptr && !head.compare_exchange_weak(first, t, std::memory_order_release, std::memory_order_relaxed));
+	}
+
+	std::optional<T> Pull() {
+		std::shared_ptr<Queue_Item_t> first;
+		do {
+			first = head.load();
+			if (first == nullptr)
+				return std::nullopt;
+		} while (!head.compare_exchange_weak(first, first->next, std::memory_order_release, std::memory_order_relaxed));
+		return first->value;
+	}
+protected:
+	std::atomic<std::shared_ptr<Queue_Item_t>> head;
+	std::atomic<std::shared_ptr<Queue_Item_t>> tail;
+};
+#endif
 }
