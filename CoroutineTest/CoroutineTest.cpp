@@ -16,36 +16,36 @@ std::thread::id CurrentThreadId() {
 	return std::this_thread::get_id();
 }
 
-Task My_Other_Coroutine() {
-	std::cout << "[" << CurrentThreadId() << "] Other coroutine" << std::endl;
+Task My_Other_Coroutine(int id) {
+	std::cout << "[" << CurrentThreadId() << "] Other coroutine " << id << std::endl;
 
-	std::this_thread::sleep_for(std::chrono::seconds(5));
+	std::this_thread::sleep_for(std::chrono::seconds(id));
 
-	std::cout << "[" << CurrentThreadId() << "] Other coroutine slept" << std::endl;
+	std::cout << "[" << CurrentThreadId() << "] Other coroutine " << id << " slept" << std::endl;
 
 	co_return;
 }
 
-Task_t<int> My_Coroutine() {
-	std::cout << "[" << CurrentThreadId() << "] Coroutine start." << std::endl;
+Task_t<int> My_Coroutine(int id) {
+	std::cout << "[" << CurrentThreadId() << "] Coroutine '" << id << "' start." << std::endl;
 
-	Task t1 = My_Other_Coroutine();
-	Task t2 = My_Other_Coroutine();
-	Task t3 = My_Other_Coroutine();
+	Task t1 = My_Other_Coroutine(id + 1);
+	Task t2 = My_Other_Coroutine(id + 2);
+	Task t3 = My_Other_Coroutine(id + 3);
 
 	co_await WhenAll(t1, t2, t3, [] () -> Task {
 		std::cout << "["  << CurrentThreadId() << "] Coroutine Lambda!" << std::endl;
 		co_return;
 	}());
 
-	std::cout << "[" << CurrentThreadId() << "] Resumed" << std::endl;
+	std::cout << "[" << CurrentThreadId() << "] " << id << " Resumed" << std::endl;
 	co_return 49;
 }
 
 int main()
 {
 	std::cout << "[" << CurrentThreadId() << "] Main Thread" << std::endl;
-	auto task = My_Coroutine();
+	auto task = My_Coroutine(0);
 
 	try {
 		int x = task.wait();

@@ -12,7 +12,7 @@ namespace crlib {
 
 struct ThreadPool_Thread;
 
-CRLIB_API struct ThreadPool {
+struct ThreadPool {
 public:
 	static thread_local std::shared_ptr<ThreadPool_Thread> local_thread;
 private:
@@ -23,20 +23,20 @@ private:
 	bool running;
 	std::weak_ptr<ThreadPool> self_ptr;
 
-	CRLIB_API ThreadPool();
+	ThreadPool();
 public:
-	CRLIB_API static std::shared_ptr<ThreadPool> build(size_t thread_count);
-	CRLIB_API ~ThreadPool();
+	static std::shared_ptr<ThreadPool> build(size_t thread_count);
+	~ThreadPool();
 
-	CRLIB_API void submit(std::coroutine_handle<> h);
+	void submit(std::coroutine_handle<> h);
 
 	bool is_running() {
 		return this->running;
 	}
 
-	CRLIB_API std::optional<std::coroutine_handle<>> get_work();
+	std::optional<std::coroutine_handle<>> get_work();
 
-	CRLIB_API void stop();
+	void stop();
 };
 
 struct ThreadPool_Thread {
