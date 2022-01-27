@@ -130,7 +130,7 @@ struct Concurrent_Queue_t {
 protected:
 	struct Queue_Item_t;
 
-#ifdef __MSC_VER
+#ifdef _MSC_VER
 	typedef std::shared_ptr<Queue_Item_t> QueueItemPtr;
 #define CRLIB_QUEUE_ITEM_AUTO_DELETE
 #else

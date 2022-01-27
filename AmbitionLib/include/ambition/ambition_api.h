@@ -12,3 +12,5 @@
 #define AMBITION_API
 #endif
 #endif
+
+extern void AMBITION_API Test(bool fullscreen);
