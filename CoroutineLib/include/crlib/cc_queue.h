@@ -128,15 +128,28 @@ public:
 template<typename T>
 struct Concurrent_Queue_t {
 protected:
+	struct Queue_Item_t;
+
+#ifdef __MSC_VER
+	typedef std::shared_ptr<Queue_Item_t> QueueItemPtr;
+#define CRLIB_QUEUE_ITEM_AUTO_DELETE
+#else
+	typedef Queue_Item_t* QueueItemPtr;
+#define CRLIB_QUEUE_ITEM_MANUAL_DELETE
+#endif
 	struct Queue_Item_t {
 		std::optional<T> value;
-		std::shared_ptr<Queue_Item_t> next;
+		QueueItemPtr next;
 
 		Queue_Item_t(const T item) {
 			value = item;
 			next = nullptr;
 		}
 	};
+
+protected:
+	std::atomic<QueueItemPtr> head;
+	std::atomic<QueueItemPtr> tail;
 public:
 	Concurrent_Queue_t() {
 		head.store(nullptr);
@@ -144,9 +157,9 @@ public:
 	}
 
 	void Push(const T item) {
-		auto t = std::shared_ptr<Queue_Item_t>(new Queue_Item_t(item));
+		auto t = new Queue_Item_t(item);
 
-		std::shared_ptr<Queue_Item_t> last;
+		QueueItemPtr last;
 		do {
 			last = tail.load();
 		} while (!tail.compare_exchange_weak(last, t, std::memory_order_release, std::memory_order_relaxed));
@@ -155,24 +168,27 @@ public:
 			last->next = t;
 		}
 
-		std::shared_ptr<Queue_Item_t> first;
+		QueueItemPtr first;
 		do {
 			first = head.load();
 		} while (first == nullptr && !head.compare_exchange_weak(first, t, std::memory_order_release, std::memory_order_relaxed));
 	}
 
 	std::optional<T> Pull() {
-		std::shared_ptr<Queue_Item_t> first;
+		QueueItemPtr first;
 		do {
 			first = head.load();
 			if (first == nullptr)
 				return std::nullopt;
 		} while (!head.compare_exchange_weak(first, first->next, std::memory_order_release, std::memory_order_relaxed));
-		return first->value;
+		std::optional<T> val = first->value;
+		
+		#ifdef CRLIB_QUEUE_ITEM_MANUAL_DELETE
+		delete first;
+		#endif
+		
+		return val;
 	}
-protected:
-	std::atomic<std::shared_ptr<Queue_Item_t>> head;
-	std::atomic<std::shared_ptr<Queue_Item_t>> tail;
 };
 #endif
 }

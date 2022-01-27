@@ -391,3 +391,5 @@ FodyWeavers.xsd
 # Custom CMake additions
 out/
 build/
+
+.vscode/
