@@ -157,7 +157,11 @@ public:
 	}
 
 	void Push(const T item) {
+#ifdef CRLIB_QUEUE_ITEM_MANUAL_DELETE
 		auto t = new Queue_Item_t(item);
+#else
+		auto t = QueueItemPtr(new Queue_Item_t(item));
+#endif
 
 		QueueItemPtr last;
 		do {

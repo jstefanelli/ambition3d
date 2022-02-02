@@ -14,7 +14,7 @@ namespace crlib {
 struct BaseTaskScheduler {
     CRLIB_API static std::shared_ptr<BaseTaskScheduler> default_task_scheduler;
     static thread_local std::shared_ptr<BaseTaskScheduler> current_scheduler;
-    CRLIB_API static void Schedule(std::coroutine_handle<> handle);
+    CRLIB_API static void Schedule(std::coroutine_handle<> handle, std::shared_ptr<BaseTaskScheduler> target_scheduler);
 
     CRLIB_API BaseTaskScheduler();
 

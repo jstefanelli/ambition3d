@@ -1,10 +1,20 @@
 #include "ambition/ambition_api.h"
 
+#include <semaphore>
+#include <thread>
 #include <iostream>
 #include <gl/glew.h>
 #include <SDL2/SDL.h>
+#include <crlib/cc_task_scheduler.h>
+#include <crlib/cc_task.h>
+#include <ambition/renderTask.h>
 
+std::shared_ptr<ambition::RenderTaskScheduler> ambition::RenderTaskScheduler::instance;
+
+bool running = false;
 void AMBITION_API Test(bool fullscreen) {
+
+	ambition::RenderTaskScheduler::Instance();
 
 	int res = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
 	if (res != 0) {
@@ -23,7 +33,7 @@ void AMBITION_API Test(bool fullscreen) {
 	SDL_GL_SetAttribute(SDL_GLattr::SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 	SDL_Rect display_bounds;
-	res = SDL_GetDisplayBounds(0, & display_bounds);
+	res = SDL_GetDisplayBounds(0, &display_bounds);
 	if (res != 0) {
 		std::cerr << "[SDL] Failed to get primary display bounds." << SDL_GetError() << std::endl;
 		return;
@@ -32,7 +42,8 @@ void AMBITION_API Test(bool fullscreen) {
 	SDL_Window* window;
 	if (fullscreen) {
 		window = SDL_CreateWindow("Ambition3D", display_bounds.x, display_bounds.y, display_bounds.w, display_bounds.h, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
-	} else {
+	}
+	else {
 		window = SDL_CreateWindow("Ambition3D", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_OPENGL);
 	}
 	if (window == nullptr) {
@@ -41,44 +52,71 @@ void AMBITION_API Test(bool fullscreen) {
 
 	SDL_ShowWindow(window);
 
-	SDL_GLContext glContext = SDL_GL_CreateContext(window);
-	glewInit();
 
-	bool running = true;
+	std::thread renderThread([window]() -> void {
+		SDL_GLContext glContext = SDL_GL_CreateContext(window);
+		glewInit();
+
+
+		while (running) {
+			auto task = ambition::RenderTaskScheduler::Instance()->task_queue.Pull();
+			if (task.has_value()) {
+				task.value()();
+			}
+		}
+	});
+
 	SDL_Event event;
-
-	float rgb[] { 0.0f, 0.5f, 1.0f };
-	bool up[] { true, true, true };
+	std::shared_ptr<std::binary_semaphore> frame_completed_semaphore = std::make_shared<std::binary_semaphore>(0);
+	std::shared_ptr<float[]> rgb(new float[3]);
+	rgb[0] = 0.0f;
+	rgb[1] = 0.5f;
+	rgb[2] = 1.0f;
+	std::shared_ptr<int[]> up(new int[3]);
+	up[0] = true;
+	up[1] = true;
+	up[2] = true;
 	do {
+		frame_completed_semaphore->acquire();
 		while(SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
 				running = false;
 				break;
 			}
+			
 		}
 
-		for (int i = 0; i < 3; i++) {
-			float v = rgb[i];
-			bool u = up[i];
+		[window, rgb, up, frame_completed_semaphore]() -> crlib::Task {
 
-			if (v >= 1.0f) {
-				u = false;
-			} else if (v <= 0) {
-				u = true;
-			}
-			up[i] = u;
+			co_await[rgb, up, window, frame_completed_semaphore]() -> ambition::RenderTask_t<int> {
+				for (int i = 0; i < 3; i++) {
+					float v = rgb[i];
+					bool u = up[i];
 
-			if (u) {
-				rgb[i] += 0.005f;
-			} else {
-				rgb[i] -= 0.005f;
-			}
-		}
+					if (v >= 1.0f) {
+						u = false;
+					}
+					else if (v <= 0) {
+						u = true;
+					}
+					up[i] = u;
 
-		glClearColor(rgb[0], rgb[1], rgb[2], 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+					if (u) {
+						rgb[i] += 0.005f;
+					}
+					else {
+						rgb[i] -= 0.005f;
+					}
+				}
 
-		SDL_GL_SwapWindow(window);
+				glClearColor(rgb[0], rgb[1], rgb[2], 1.0f);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+				SDL_GL_SwapWindow(window);
+				frame_completed_semaphore->release();
+				co_return 0;
+			}();
+		}();
 	} while(running);
 
 	SDL_Quit();

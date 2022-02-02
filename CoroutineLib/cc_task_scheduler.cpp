@@ -9,7 +9,11 @@ CRLIB_API BaseTaskScheduler::BaseTaskScheduler() {
 
 }
 
-CRLIB_API void BaseTaskScheduler::Schedule(std::coroutine_handle<> handle) {
+CRLIB_API void BaseTaskScheduler::Schedule(std::coroutine_handle<> handle, std::shared_ptr<BaseTaskScheduler> target_scheduler) {
+    if (target_scheduler != nullptr) {
+        target_scheduler->OnTaskSubmitted(handle);
+    }
+
     if (current_scheduler != nullptr) {
         current_scheduler->OnTaskSubmitted(handle);
     } else {
