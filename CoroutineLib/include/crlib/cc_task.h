@@ -8,6 +8,7 @@
 #include "cc_task_scheduler.h"
 #include <type_traits>
 #include <concepts>
+#include <iostream>
 
 namespace crlib {
 
@@ -92,18 +93,23 @@ struct BaseTaskAwaiter {
 
 	bool await_ready() {
 		//TODO: Check for threadpool thread
-		return lock->completed;
+		//return lock->completed;
+		return false;
 	}
 
 	template<typename PromiseType>
 	void await_suspend(std::coroutine_handle<PromiseType> h) {
 		if (!lock->completed) {
 			lock->waiting_coroutines.Push([h]() {
-				BaseTaskScheduler::Schedule(h, h.promise().scheduler);
+				auto sch = h.promise().scheduler;
+				std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
+				BaseTaskScheduler::Schedule(h, sch);
 				});
 		}
 		else {
-			BaseTaskScheduler::Schedule(h, h.promise().scheduler);
+			auto sch = h.promise().scheduler;
+			std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
+			BaseTaskScheduler::Schedule(h, sch);
 		}
 	}
 
@@ -141,9 +147,10 @@ struct AggregateException : public std::runtime_error {
 	}
 };
 
+template<typename T>
 struct MultiTaskAwaiter {
 	struct MultiTaskAwaiter_ctrl {
-		std::vector<std::shared_ptr<Task_lock>> task_locks;
+		std::vector<std::shared_ptr<typename T::LockType>> task_locks;
 		size_t tasks_count;
 		std::atomic_size_t completed_tasks;
 
@@ -154,7 +161,7 @@ struct MultiTaskAwaiter {
 
 	std::shared_ptr<MultiTaskAwaiter_ctrl> ctrl_block;
 
-	MultiTaskAwaiter(std::vector<std::shared_ptr<Task_lock>> locks) :
+	MultiTaskAwaiter(std::vector<std::shared_ptr<typename T::LockType>> locks) :
 		ctrl_block(std::shared_ptr<MultiTaskAwaiter_ctrl>(new MultiTaskAwaiter_ctrl())) 
 	{
 		ctrl_block->tasks_count = locks.size();
@@ -179,7 +186,9 @@ struct MultiTaskAwaiter {
 		size_t old = ctrl_block->completed_tasks.fetch_add(1);
 
 		if (old == ctrl_block->tasks_count - 1) {
-			BaseTaskScheduler::Schedule(h, h.promise().scheduler);
+			auto sch = h.promise().scheduler;
+			std::cout << "[MultiAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
+			BaseTaskScheduler::Schedule(h, sch);
 		}
 	}
 
@@ -274,7 +283,7 @@ public:
 };
 
 template<typename ... TS>
-MultiTaskAwaiter WhenAll(const TS&... tasks) {
+MultiTaskAwaiter<Task> WhenAll(const TS&... tasks) {
 	std::vector<Task> task_vector {{ tasks... }};
 
 	std::vector<std::shared_ptr<Task_lock>> locks;
@@ -283,8 +292,19 @@ MultiTaskAwaiter WhenAll(const TS&... tasks) {
 		locks.push_back(t.lock);
 	}
 
-	return MultiTaskAwaiter(locks);
+	return MultiTaskAwaiter<Task>(locks);
 };
+
+template<typename T>
+MultiTaskAwaiter<T> WhenAll(const std::vector<T>& tasks) {
+	std::vector<std::shared_ptr<typename T::LockType>> locks;
+
+	for (auto& t : tasks) {
+		locks.push_back(t.lock);
+	}
+	
+	return MultiTaskAwaiter<T>(locks);
+}
 
 template<typename TaskType, typename PromiseType>
 struct BasePromise {
@@ -308,7 +328,8 @@ struct BasePromise {
 		return typename TType::AwaiterType(task.lock);
 	}
 
-	crlib::MultiTaskAwaiter await_transform(crlib::MultiTaskAwaiter awaiter) {
+	template<typename T>
+	crlib::MultiTaskAwaiter<T> await_transform(crlib::MultiTaskAwaiter<T> awaiter) {
 		return awaiter;
 	}
 

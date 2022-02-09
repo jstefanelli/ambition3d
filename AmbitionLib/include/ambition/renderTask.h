@@ -7,6 +7,8 @@ namespace ambition {
 
 	template<typename T>
 	struct RenderTask_t : public crlib::Task_t<T> {
+		typedef crlib::Task_lock_t<T> LockType;
+		typedef crlib::TaskAwaiter_t<T> AwaiterType;
 
 	};
 
@@ -27,6 +29,10 @@ namespace ambition {
 			}
 
 			return instance;
+		}
+
+		virtual std::string ToString() override {
+			return "RenderTaskScheduler";
 		}
 	};
 };

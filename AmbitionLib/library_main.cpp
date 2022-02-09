@@ -13,10 +13,10 @@ std::shared_ptr<ambition::RenderTaskScheduler> ambition::RenderTaskScheduler::in
 
 bool running = false;
 void AMBITION_API Test(bool fullscreen) {
-
 	ambition::RenderTaskScheduler::Instance();
 
-	int res = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
+	running = true;
+	int res = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_HAPTIC | SDL_INIT_GAMECONTROLLER | SDL_INIT_AUDIO);
 	if (res != 0) {
 		std::cerr << "[SDL] Initialization failed: " << SDL_GetError() << std::endl;
 		return;
@@ -51,17 +51,21 @@ void AMBITION_API Test(bool fullscreen) {
 	}
 
 	SDL_ShowWindow(window);
+	SDL_GLContext glContext = SDL_GL_CreateContext(window);
+	SDL_GL_MakeCurrent(window, nullptr);
 
-
-	std::thread renderThread([window]() -> void {
-		SDL_GLContext glContext = SDL_GL_CreateContext(window);
+	std::thread renderThread([glContext, window]() -> void {
+		int res = SDL_GL_MakeCurrent(window, glContext);
+		if (res != 0) {
+			std::cerr << "[Render] glMakeCurrent error: " << SDL_GetError() << std::endl;
+			return;
+		}
 		glewInit();
-
 
 		while (running) {
 			auto task = ambition::RenderTaskScheduler::Instance()->task_queue.Pull();
 			if (task.has_value()) {
-				task.value()();
+				task.value().resume();
 			}
 		}
 	});
@@ -72,52 +76,53 @@ void AMBITION_API Test(bool fullscreen) {
 	rgb[0] = 0.0f;
 	rgb[1] = 0.5f;
 	rgb[2] = 1.0f;
+
 	std::shared_ptr<int[]> up(new int[3]);
 	up[0] = true;
 	up[1] = true;
 	up[2] = true;
+
 	do {
-		frame_completed_semaphore->acquire();
+
+		[rgb, up, window, frame_completed_semaphore]() -> ambition::RenderTask_t<int> {
+			for (int i = 0; i < 3; i++) {
+				float v = rgb[i];
+				bool u = up[i];
+
+				if (v >= 1.0f) {
+					u = false;
+				}
+				else if (v <= 0) {
+					u = true;
+				}
+				up[i] = u;
+
+				if (u) {
+					rgb[i] += 0.005f;
+				}
+				else {
+					rgb[i] -= 0.005f;
+				}
+			}
+
+			glClearColor(rgb[0], rgb[1], rgb[2], 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			SDL_GL_SwapWindow(window);
+			frame_completed_semaphore->release();
+			co_return 0;
+		}();
+
 		while(SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
 				running = false;
 				break;
 			}
-			
 		}
 
-		[window, rgb, up, frame_completed_semaphore]() -> crlib::Task {
-
-			co_await[rgb, up, window, frame_completed_semaphore]() -> ambition::RenderTask_t<int> {
-				for (int i = 0; i < 3; i++) {
-					float v = rgb[i];
-					bool u = up[i];
-
-					if (v >= 1.0f) {
-						u = false;
-					}
-					else if (v <= 0) {
-						u = true;
-					}
-					up[i] = u;
-
-					if (u) {
-						rgb[i] += 0.005f;
-					}
-					else {
-						rgb[i] -= 0.005f;
-					}
-				}
-
-				glClearColor(rgb[0], rgb[1], rgb[2], 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				SDL_GL_SwapWindow(window);
-				frame_completed_semaphore->release();
-				co_return 0;
-			}();
-		}();
+		frame_completed_semaphore->acquire();
 	} while(running);
 
+	renderThread.join();
 	SDL_Quit();
 }

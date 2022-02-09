@@ -61,7 +61,7 @@ std::optional<std::coroutine_handle<>> ThreadPool::get_work() {
 
 	} while (!h.has_value() && running);
 
-	return std::optional<std::coroutine_handle<>>();
+	return std::nullopt;
 }
 
 void ThreadPool::stop() {

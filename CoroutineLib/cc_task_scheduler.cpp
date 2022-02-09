@@ -12,6 +12,7 @@ CRLIB_API BaseTaskScheduler::BaseTaskScheduler() {
 CRLIB_API void BaseTaskScheduler::Schedule(std::coroutine_handle<> handle, std::shared_ptr<BaseTaskScheduler> target_scheduler) {
     if (target_scheduler != nullptr) {
         target_scheduler->OnTaskSubmitted(handle);
+        return;
     }
 
     if (current_scheduler != nullptr) {
@@ -34,6 +35,10 @@ CRLIB_API ThreadPoolTaskScheduler::ThreadPoolTaskScheduler(size_t thread_amount)
 
 CRLIB_API void ThreadPoolTaskScheduler::OnTaskSubmitted(std::coroutine_handle<> handle) {
     thread_pool->submit(handle);
+}
+
+CRLIB_API std::string ThreadPoolTaskScheduler::ToString() {
+    return "ThreadPoolTaskScheduler";
 }
 
 }

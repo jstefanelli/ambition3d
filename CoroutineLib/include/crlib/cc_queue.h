@@ -166,7 +166,7 @@ public:
 		QueueItemPtr last;
 		do {
 			last = tail.load();
-		} while (!tail.compare_exchange_weak(last, t, std::memory_order_release, std::memory_order_relaxed));
+		} while (!tail.compare_exchange_strong(last, t));
 		
 		if (last != nullptr) {
 			last->next = t;
@@ -175,7 +175,7 @@ public:
 		QueueItemPtr first;
 		do {
 			first = head.load();
-		} while (first == nullptr && !head.compare_exchange_weak(first, t, std::memory_order_release, std::memory_order_relaxed));
+		} while (first == nullptr && !head.compare_exchange_strong(first, t));
 	}
 
 	std::optional<T> Pull() {
@@ -184,7 +184,7 @@ public:
 			first = head.load();
 			if (first == nullptr)
 				return std::nullopt;
-		} while (!head.compare_exchange_weak(first, first->next, std::memory_order_release, std::memory_order_relaxed));
+		} while (!head.compare_exchange_strong(first, first->next));
 		std::optional<T> val = first->value;
 		
 		#ifdef CRLIB_QUEUE_ITEM_MANUAL_DELETE
