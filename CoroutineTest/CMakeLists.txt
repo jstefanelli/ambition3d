@@ -11,7 +11,9 @@ set_property (TARGET CoroutineTest PROPERTY CXX_STANDARD 20)
 set_property (TARGET CoroutineTest PROPERTY CXX_STANDARD_REQUIRED TRUE)
 # TODO: Add tests and install targets if needed.
 
+if (WIN32) 
 add_custom_command(TARGET CoroutineTest POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:CoroutineTest> $<TARGET_FILE_DIR:CoroutineTest>
   COMMAND_EXPAND_LISTS
 )
+endif(WIN32)

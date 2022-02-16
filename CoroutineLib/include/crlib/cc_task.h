@@ -305,7 +305,7 @@ struct BasePromise {
 
 	template<typename TType>
 	TType::AwaiterType await_transform(TType task) {
-		return TType::AwaiterType(task.lock);
+		return typename TType::AwaiterType(task.lock);
 	}
 
 	crlib::MultiTaskAwaiter await_transform(crlib::MultiTaskAwaiter awaiter) {
