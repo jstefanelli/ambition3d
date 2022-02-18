@@ -10,8 +10,14 @@ namespace ambition {
 			float near;
 			float far;
 			bool projection_ok;
+
+			glm::mat4 last_view_matrix;
+			glm::mat4 last_projection_matrix;
+
+			virtual bool UpdateProjectionMatrix() = 0;
 		public:
-			virtual glm::mat4 ProjectionMatrix() = 0;
+			virtual crlib::Task LateUpdate(float delta) override;
+			virtual glm::mat4 ProjectionMatrix();
 			virtual glm::mat4 ViewMatrix();
 
 			float Near() const;
@@ -24,8 +30,10 @@ namespace ambition {
 		protected:
 			float fov;
 			float aspect_ratio;
+
+			virtual bool UpdateProjectionMatrix() override;
 		public:
-			virtual glm::mat4 ProjectionMatrix() override;
+
 			float FoV() const;
 			float AspectRatio() const;
 			void FoV(float value_rad);

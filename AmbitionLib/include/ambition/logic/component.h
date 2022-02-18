@@ -10,10 +10,13 @@ namespace ambition {
 		class Component {
 		protected:
 			std::weak_ptr<Element> element;
+
 		public:
-			virtual crlib::Task Update(float delta);
-			virtual crlib::Task LateUpdate(float delta);
-			virtual RenderTask_t<bool> Draw();
+			std::weak_ptr<Element> WeakElement() const;
+			std::shared_ptr<Element> Element() const;
+			virtual crlib::Task Update(float delta) = 0;
+			virtual crlib::Task LateUpdate(float delta) = 0;
+			virtual RenderTask_t<bool> Draw() = 0;
 		};
 	}
 }

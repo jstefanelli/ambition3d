@@ -55,4 +55,13 @@ namespace ambition::logic {
 
 		co_await crlib::WhenAll(tasks);
 	}
+
+	Transform& Element::UpdateTransform() {
+		return update_transform;
+	}
+
+	Transform& Element::RenderTransform() {
+		return render_transform;
+	}
+
 }
