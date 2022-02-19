@@ -70,6 +70,8 @@ void AMBITION_API Test(bool fullscreen) {
 		}
 	});
 
+    auto render_thread_id = renderThread.get_id();
+
 	SDL_Event event;
 	std::shared_ptr<std::binary_semaphore> frame_completed_semaphore = std::make_shared<std::binary_semaphore>(0);
 	std::shared_ptr<float[]> rgb(new float[3]);
@@ -82,9 +84,22 @@ void AMBITION_API Test(bool fullscreen) {
 	up[1] = true;
 	up[2] = true;
 
+    auto last_time = std::chrono::system_clock::now();
 	do {
 
-		[rgb, up, window, frame_completed_semaphore]() -> ambition::RenderTask_t<int> {
+		[rgb, up, window, frame_completed_semaphore, render_thread_id, &last_time]() -> ambition::RenderTask_t<int> {
+            auto now = std::chrono::system_clock::now();
+
+            auto delta  = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time);
+            last_time = now;
+
+            if (std::this_thread::get_id() != render_thread_id) {
+                std::cerr << "[RenderTask] Running on the wrong thread." << std::endl;
+                co_return 1;
+            }
+
+            std::cout << "[GL] Delta time: " << delta.count() << std::endl;
+
 			for (int i = 0; i < 3; i++) {
 				float v = rgb[i];
 				bool u = up[i];

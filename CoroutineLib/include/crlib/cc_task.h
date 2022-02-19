@@ -19,7 +19,7 @@ struct Base_Task_lock {
 	Concurrent_Queue_t<std::function<void()>> waiting_coroutines;
 	std::binary_semaphore wait_semaphore;
 
-	Base_Task_lock() : wait_semaphore(0), completed(false) {
+	Base_Task_lock() : completed(false), wait_semaphore(0)  {
 
 	}
 
@@ -311,7 +311,7 @@ struct BasePromise {
 	std::shared_ptr<typename TaskType::LockType> lock;
 	std::shared_ptr<crlib::BaseTaskScheduler> scheduler;
 
-	BasePromise() : lock(new TaskType::LockType()) {
+	BasePromise() : lock(new typename TaskType::LockType()) {
 
 	}
 

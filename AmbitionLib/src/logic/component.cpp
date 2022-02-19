@@ -6,12 +6,16 @@ namespace ambition::logic {
 		return element;
 	}
 
-	std::shared_ptr<Element> Component::Element() const {
+	std::shared_ptr<Element> Component::RealElement() const {
 		auto e = element.lock();
 		if (e == nullptr) {
 			throw std::runtime_error("Component could not lock onto owner element");
 		}
 
 		return e;
+	}
+
+	Component::Component(const std::shared_ptr<Element>& element) : element(element) {
+
 	}
 }

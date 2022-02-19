@@ -63,7 +63,7 @@ private:
 		ThreadPool::local_thread = nullptr;
 	}
 
-	explicit ThreadPool_Thread(std::shared_ptr<ThreadPool> thread_pool) : thread_pool(thread_pool), self(nullptr) {
+	explicit ThreadPool_Thread(std::shared_ptr<ThreadPool> thread_pool) : self(nullptr), thread_pool(thread_pool) {
 		
 	}
 

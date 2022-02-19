@@ -9,7 +9,11 @@ target_compile_definitions (AmbitionLib PRIVATE AMBITION_EXPORTS)
 target_include_directories (AmbitionLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries (AmbitionLib PUBLIC glm::glm "CoroutineLib")
 target_link_libraries (AmbitionLib PRIVATE SDL2::SDL2 GLEW::GLEW)
-
+if(MSVC)
+    target_compile_options(AmbitionLib PRIVATE /WX /W4)
+else()
+    target_compile_options(AmbitionLib PRIVATE -Wall -Wextra -Werror -pedantic-errors)
+endif()
 
 set_property (TARGET AmbitionLib PROPERTY CXX_STANDARD 20)
 set_property (TARGET AmbitionLib PROPERTY CXX_STANDARD_REQUIRED TRUE)
