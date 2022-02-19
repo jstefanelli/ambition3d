@@ -10,30 +10,27 @@
 #include <concepts>
 #include <iostream>
 
+
 namespace crlib {
 
 struct Base_Task_lock {
 	bool completed;
 	std::optional<std::exception_ptr> exception;
-
-	Concurrent_Queue_t<std::function<void()>> waiting_coroutines;
+	Concurrent_Queue_t<std::function<void()>*> waiting_coroutines;
 	std::binary_semaphore wait_semaphore;
 
-	Base_Task_lock() : wait_semaphore(0), completed(false) {
+	Base_Task_lock() : completed(false), wait_semaphore(0), waiting_coroutines(64) {
 
 	}
 
 	void complete() {
 		completed = true;
 		wait_semaphore.release();
-		std::optional<std::function<void()>> h;
-		do {
-			h = waiting_coroutines.Pull();
-			if (h.has_value()) {
-				h.value()();
-			}
-
-		} while (h.has_value());
+		std::function<void()>* h;
+		while (waiting_coroutines.pop(h)) {
+			h->operator()();
+			delete h;
+		}
 	}
 };
 
@@ -182,7 +179,7 @@ struct MultiTaskAwaiter {
 	}
 
 	template<typename PromiseType>
-	void increase_and_schedule(std::coroutine_handle<PromiseType> h) {
+	static void increase_and_schedule(std::coroutine_handle<PromiseType> h, std::shared_ptr<MultiTaskAwaiter_ctrl> ctrl_block) {
 		size_t old = ctrl_block->completed_tasks.fetch_add(1);
 
 		if (old == ctrl_block->tasks_count - 1) {
@@ -196,11 +193,12 @@ struct MultiTaskAwaiter {
 	void await_suspend(std::coroutine_handle<PromiseType> h) {
 		for (auto& t : ctrl_block->task_locks) {
 			if (t->completed) {
-				increase_and_schedule(h);
+				increase_and_schedule(h, ctrl_block);
 			} else {
-				t->waiting_coroutines.Push([this, h] () {
-					increase_and_schedule(h);
-				});
+				auto cb = ctrl_block;
+				t->waiting_coroutines.push(new std::function<void()>([cb, h]() {
+					increase_and_schedule(h, cb);
+				}));
 			}
 		}
 	}

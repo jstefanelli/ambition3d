@@ -20,7 +20,7 @@ namespace ambition {
 		crlib::Concurrent_Queue_t<std::coroutine_handle<>> task_queue;
 
 		virtual void OnTaskSubmitted(std::coroutine_handle<> task) override {
-			task_queue.Push(task);
+			task_queue.push(task);
 		}
 
 		static std::shared_ptr<RenderTaskScheduler>& Instance() {

@@ -63,9 +63,9 @@ void AMBITION_API Test(bool fullscreen) {
 		glewInit();
 
 		while (running) {
-			auto task = ambition::RenderTaskScheduler::Instance()->task_queue.Pull();
-			if (task.has_value()) {
-				task.value().resume();
+			std::coroutine_handle<> h;
+			if (ambition::RenderTaskScheduler::Instance()->task_queue.pop(h)) {
+				h.resume();
 			}
 		}
 	});

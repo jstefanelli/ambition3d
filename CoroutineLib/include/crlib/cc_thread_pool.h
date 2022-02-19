@@ -50,20 +50,23 @@ private:
 		ThreadPool::local_thread = self_ptr;
 		
 		do {
-			auto h = local_tasks.Pull();
-			if (!h.has_value()) {
-				h = thread_pool->get_work();
+			std::coroutine_handle<> h;
+			if (local_tasks.pop(h)) {
+				h.resume();
 			}
-
-			if (h.has_value()) {
-				h.value().resume();
+			else {
+				auto optional_t = thread_pool->get_work();
+				if (optional_t.has_value()) {
+					optional_t.value().resume();
+				}
 			}
 		} while (thread_pool->is_running());
+
 
 		ThreadPool::local_thread = nullptr;
 	}
 
-	explicit ThreadPool_Thread(std::shared_ptr<ThreadPool> thread_pool) : thread_pool(thread_pool), self(nullptr) {
+	explicit ThreadPool_Thread(std::shared_ptr<ThreadPool> thread_pool) : self(nullptr), thread_pool(thread_pool), local_tasks(64) {
 		
 	}
 
