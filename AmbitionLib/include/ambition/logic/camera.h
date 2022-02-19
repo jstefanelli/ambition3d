@@ -14,6 +14,8 @@ namespace ambition {
 			glm::mat4 last_view_matrix;
 			glm::mat4 last_projection_matrix;
 
+            Camera(const std::shared_ptr<Element>& element);
+            Camera(const Camera& other) = default;
 			virtual bool UpdateProjectionMatrix() = 0;
 		public:
 			virtual crlib::Task LateUpdate(float delta) override;
@@ -31,9 +33,8 @@ namespace ambition {
 			float fov;
 			float aspect_ratio;
 
-			virtual bool UpdateProjectionMatrix() override;
+			bool UpdateProjectionMatrix() override;
 		public:
-
 			float FoV() const;
 			float AspectRatio() const;
 			void FoV(float value_rad);

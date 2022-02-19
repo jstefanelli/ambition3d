@@ -309,7 +309,7 @@ struct BasePromise {
 	std::shared_ptr<typename TaskType::LockType> lock;
 	std::shared_ptr<crlib::BaseTaskScheduler> scheduler;
 
-	BasePromise() : lock(new TaskType::LockType()) {
+	BasePromise() : lock(new typename TaskType::LockType()) {
 
 	}
 

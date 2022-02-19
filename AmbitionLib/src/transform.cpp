@@ -4,14 +4,14 @@
 
 namespace ambition {
 	Transform::Transform() : position(0, 0, 0), orientation(), scale(1, 1, 1), 
-		model_local(1.0f), model_full(1.0f), parent(1.0f),
-		local_up_to_date(false), full_up_to_date(false) {
+		local_up_to_date(false), full_up_to_date(false), parent(1.0f),
+		model_local(1.0f), model_full(1.0f) {
 		
 	}
 
 	Transform::Transform(const Transform& other) : position(other.position), orientation(other.orientation), scale(other.scale),
-		model_local(other.model_local), model_full(other.model_full), parent(other.parent),
-		local_up_to_date(other.local_up_to_date), full_up_to_date(other.full_up_to_date) {
+		local_up_to_date(other.local_up_to_date), full_up_to_date(other.full_up_to_date), parent(other.parent),
+		model_local(other.model_local), model_full(other.model_full) {
 
 	}
 
