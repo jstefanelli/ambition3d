@@ -16,9 +16,9 @@ namespace ambition {
 		public:
 			std::weak_ptr<Element> WeakElement() const;
 			std::shared_ptr<Element> RealElement() const;
-			virtual crlib::Task Update(float delta) = 0;
-			virtual crlib::Task LateUpdate(float delta) = 0;
-			virtual RenderTask_t<bool> Draw() = 0;
+			virtual crlib::Task Update(float delta);
+			virtual crlib::Task LateUpdate(float delta);
+			virtual RenderTask_t<bool> Draw();
 		};
 	}
 }

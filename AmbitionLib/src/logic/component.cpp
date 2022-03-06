@@ -18,4 +18,16 @@ namespace ambition::logic {
 	Component::Component(const std::shared_ptr<Element>& element) : element(element) {
 
 	}
+
+	crlib::Task Component::Update(float delta) {
+		return crlib::Task::CompletedTask();
+	}
+
+	crlib::Task Component::LateUpdate(float delta) {
+		return crlib::Task::CompletedTask();
+	}
+
+	RenderTask_t<bool> Component::Draw() {
+		return RenderTask_t<bool>::FromResult(true);
+	}
 }

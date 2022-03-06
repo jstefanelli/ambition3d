@@ -10,7 +10,6 @@
 #include <concepts>
 #include <iostream>
 
-
 namespace crlib {
 
 struct Base_Task_lock {
@@ -19,7 +18,7 @@ struct Base_Task_lock {
 	Concurrent_Queue_t<std::function<void()>*> waiting_coroutines;
 	std::binary_semaphore wait_semaphore;
 
-	Base_Task_lock() : completed(false), wait_semaphore(0), waiting_coroutines(64) {
+	Base_Task_lock() : completed(false), waiting_coroutines(64), wait_semaphore(0) {
 
 	}
 
@@ -99,13 +98,13 @@ struct BaseTaskAwaiter {
 		if (!lock->completed) {
 			lock->waiting_coroutines.Push([h]() {
 				auto sch = h.promise().scheduler;
-				std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
+				//std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
 				BaseTaskScheduler::Schedule(h, sch);
 				});
 		}
 		else {
 			auto sch = h.promise().scheduler;
-			std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
+			//std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
 			BaseTaskScheduler::Schedule(h, sch);
 		}
 	}
@@ -139,7 +138,7 @@ struct TaskAwaiter_t : public BaseTaskAwaiter<Task_lock_t<T>> {
 struct AggregateException : public std::runtime_error {
 	std::vector<std::exception_ptr> exceptions;
 
-	AggregateException(std::vector<std::exception_ptr> exceptions) : std::runtime_error("Aggregate exceptions from tasks"), exceptions(exceptions) {
+	explicit AggregateException(std::vector<std::exception_ptr> exceptions) : std::runtime_error("Aggregate exceptions from tasks"), exceptions(std::move(exceptions)) {
 
 	}
 };
@@ -158,7 +157,7 @@ struct MultiTaskAwaiter {
 
 	std::shared_ptr<MultiTaskAwaiter_ctrl> ctrl_block;
 
-	MultiTaskAwaiter(std::vector<std::shared_ptr<typename T::LockType>> locks) :
+	explicit MultiTaskAwaiter(std::vector<std::shared_ptr<typename T::LockType>> locks) :
 		ctrl_block(std::shared_ptr<MultiTaskAwaiter_ctrl>(new MultiTaskAwaiter_ctrl())) 
 	{
 		ctrl_block->tasks_count = locks.size();
@@ -184,7 +183,7 @@ struct MultiTaskAwaiter {
 
 		if (old == ctrl_block->tasks_count - 1) {
 			auto sch = h.promise().scheduler;
-			std::cout << "[MultiAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
+			//std::cout << "[MultiAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
 			BaseTaskScheduler::Schedule(h, sch);
 		}
 	}
@@ -242,18 +241,22 @@ public:
 	std::shared_ptr<LockType> lock;
 
 	Task() = delete;
-	Task(std::shared_ptr<LockType> lock) 
-		: lock(lock) {
+	explicit Task(std::shared_ptr<LockType> lock)
+		: lock(std::move(lock)) {
 
 	}
 
-
-	Task(const Task& other) : lock(other.lock) {
-
-	}
+	Task(const Task& other) = default;
 
 	void wait() {
 		lock->wait();
+	}
+
+	static Task CompletedTask() {
+		auto lock = std::make_shared<Task_lock>();
+		lock->complete();
+
+		return Task(lock);
 	}
 };
 
@@ -265,18 +268,23 @@ public:
 	std::shared_ptr<LockType> lock;
 
 	Task_t() = delete;
-	Task_t(std::shared_ptr<Task_lock_t<T>> lock)
-		: lock(lock) {
+	explicit Task_t(std::shared_ptr<Task_lock_t<T>> lock)
+		: lock(std::move(lock)) {
 
 	}
 
-
-	Task_t(const Task_t& other) : lock(other.lock) {
-
-	}
+	Task_t(const Task_t& other) = default;
 
 	T wait() {
 		return lock->wait();
+	}
+
+	static Task_t FromResult(T result) {
+		auto lock = std::make_shared<Task_lock_t<T>>();
+		lock->set_result(result);
+		lock->complete();
+
+		return Task_t(lock);
 	}
 };
 
@@ -291,7 +299,7 @@ MultiTaskAwaiter<Task> WhenAll(const TS&... tasks) {
 	}
 
 	return MultiTaskAwaiter<Task>(locks);
-};
+}
 
 template<typename T>
 MultiTaskAwaiter<T> WhenAll(const std::vector<T>& tasks) {
@@ -322,7 +330,7 @@ struct BasePromise {
 	}
 
 	template<typename TType>
-	TType::AwaiterType await_transform(TType task) {
+	typename TType::AwaiterType await_transform(TType task) {
 		return typename TType::AwaiterType(task.lock);
 	}
 

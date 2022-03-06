@@ -10,6 +10,17 @@ namespace ambition {
 		typedef crlib::Task_lock_t<T> LockType;
 		typedef crlib::TaskAwaiter_t<T> AwaiterType;
 
+        explicit RenderTask_t(std::shared_ptr<LockType> lock) : crlib::Task_t<T>(lock) {
+
+        }
+
+		static RenderTask_t FromResult(T result) {
+			auto lock = std::make_shared<crlib::Task_lock_t<T>>();
+			lock->set_result(result);
+			lock->complete();
+
+			return RenderTask_t(lock);
+		}
 	};
 
 	struct RenderTaskScheduler : public crlib::BaseTaskScheduler {
@@ -18,6 +29,10 @@ namespace ambition {
 
 	public:
 		crlib::Concurrent_Queue_t<std::coroutine_handle<>> task_queue;
+
+		RenderTaskScheduler() : task_queue(128) {
+
+		}
 
 		virtual void OnTaskSubmitted(std::coroutine_handle<> task) override {
 			task_queue.push(task);
