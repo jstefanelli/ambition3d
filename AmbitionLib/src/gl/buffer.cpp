@@ -58,7 +58,7 @@ namespace ambition::gl {
 
 		glGenBuffers(1, &id);
 		CHECK_GL();
-		glBufferData(target, bytes, nullptr);
+		glBufferData(target, bytes, nullptr, GL_STATIC_DRAW);
 		CHECK_GL();
 
 		size = bytes;
@@ -84,8 +84,11 @@ namespace ambition::gl {
 
 	template<GLenum target>
 	RenderTask_t<bool> Buffer<target>::Deallocate(GLuint id) {
+		if (glIsBuffer(id) != GL_TRUE)
+			co_return false;
+
 		glDeleteBuffers(1, &id);
-		CHECK_GL();
+		co_return CHECK_GL();
 	}
 
 	template<GLenum target>

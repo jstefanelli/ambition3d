@@ -4,12 +4,12 @@
 #include <memory>
 #include <vector>
 #include "../renderTask.h"
+#include "../resources/texture.h"
 
 namespace ambition::gl {
     class Texture {
     protected:
         GLuint id;
-        glm::ivec2 size;
         bool allocated;
         int max_mip_level;
 		int min_mip_level;
@@ -17,7 +17,6 @@ namespace ambition::gl {
         Texture();
 		static RenderTask_t<bool> Deallocate(GLuint id);
     public:
-        static std::shared_ptr<Texture> Generate();
 
         inline bool Allocated() const {
 			return allocated;
@@ -28,15 +27,38 @@ namespace ambition::gl {
         inline int MinMipLevel() const {
 			return min_mip_level;
 		}
+		inline int MaxMipLevel() const {
+			return max_mip_level;
+		}
 
-		bool AllocateSync(GLenum target_format, glm::ivec2, int maxMipLevel);
-		bool LoadSync(std::shared_ptr<std::vector<unsigned char>> data, GLenum src_format, int level = 0, bool generateMips = true);
-		bool DeallocateSync();
-        RenderTask_t<bool> Allocate(GLenum target_format, glm::ivec2 size, int maxMipLevel);
-        RenderTask_t<bool> Load(std::shared_ptr<std::vector<unsigned char>> data, GLenum src_format, int level = 0, bool generateMips = true);
-
+		virtual bool DeallocateSync();
         RenderTask_t<bool> Deallocate();
 
-		~Texture();
+		virtual ~Texture();
     };
+
+	class Texture2D : public Texture {
+	protected:
+		glm::ivec2 size;
+		glm::mat3 base_uv_matrix;
+	public:
+		Texture2D();
+
+		bool LoadSync(std::shared_ptr<resources::Texture2D> texture, int level, bool generateMipMaps = true);
+		RenderTask_t<bool> Load(std::shared_ptr<resources::Texture2D> texture, int level, bool generateMipMaps = true);
+
+		bool AllocateSync(glm::ivec2 size, resources::PixelFormat format, resources::PixelType type);
+		RenderTask_t<bool> Allocate(glm::ivec2 size, resources::PixelFormat format, resources::PixelType type);
+
+		bool DeallocateSync() override;
+
+		inline glm::ivec2 Size() const {
+			return size;
+		}
+		inline glm::mat3 BaseUVMatrix() const {
+			return base_uv_matrix;
+		}
+
+		~Texture2D() override = default;
+	};
 }

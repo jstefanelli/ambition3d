@@ -28,9 +28,9 @@ namespace ambition::resources {
 		PixelFormat pixelFormat;
 		PixelType pixelType;
 
-		~BaseTexture() override = 0;
+		~BaseTexture() override = default;
 	public:
-		BaseTexture(const std::vector<unsigned char>& data, PixelFormat format, PixelType type);
+		BaseTexture(std::vector<unsigned char> data, PixelFormat format, PixelType type);
 
 		const std::vector<unsigned char>& Data() const;
 		PixelFormat PixelFormat() const;

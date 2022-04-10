@@ -2,6 +2,7 @@
 #include "type.h"
 #include "resource.h"
 #include "mesh.h"
+#include "texture.h"
 #include <memory>
 #include <unordered_map>
 #include <string>
@@ -14,7 +15,7 @@ namespace ambition::resources {
 	protected:
 		static std::shared_ptr<Manager> _default;
 		std::unordered_map<std::string, std::weak_ptr<Mesh>> meshes;
-		std::unordered_map<std::string, std::weak_ptr<Texture>> textures;
+		std::unordered_map<std::string, std::weak_ptr<BaseTexture>> textures;
 
 	public:
 		template<Type T>

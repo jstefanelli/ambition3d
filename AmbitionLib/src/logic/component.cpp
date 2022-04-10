@@ -19,11 +19,11 @@ namespace ambition::logic {
 
 	}
 
-	crlib::Task Component::Update(float delta) {
+	crlib::Task Component::Update(float) {
 		return crlib::Task::CompletedTask();
 	}
 
-	crlib::Task Component::LateUpdate(float delta) {
+	crlib::Task Component::LateUpdate(float) {
 		return crlib::Task::CompletedTask();
 	}
 
