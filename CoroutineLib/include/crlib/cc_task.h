@@ -96,11 +96,11 @@ struct BaseTaskAwaiter {
 	template<typename PromiseType>
 	void await_suspend(std::coroutine_handle<PromiseType> h) {
 		if (!lock->completed) {
-			lock->waiting_coroutines.Push([h]() {
+			lock->waiting_coroutines.push(new std::function<void()>([h]() {
 				auto sch = h.promise().scheduler;
 				//std::cout << "[BaseAwaiter] Scheduling on: " << (sch == nullptr ? "default" : sch->ToString()) << std::endl;
 				BaseTaskScheduler::Schedule(h, sch);
-				});
+				}));
 		}
 		else {
 			auto sch = h.promise().scheduler;
