@@ -4,6 +4,9 @@
 #include <glm/glm.hpp>
 
 namespace ambition::resources {
+	/// <summary>
+	/// Represents the number and layout of color components/channels per pixel
+	/// </summary>
 	enum class PixelFormat {
 		RGB,
 		RGBA,
@@ -14,12 +17,14 @@ namespace ambition::resources {
 		LUMINANCE
 	};
 
+	/// <summary>
+	/// Represents the Size of each color component/channel per pixel
+	/// </summary>
 	enum class PixelType {
 		BYTE,
 		SHORT,
 		INT,
-		FLOAT,
-		DOUBLE
+		FLOAT
 	};
 
 	class BaseTexture : public Resource {
@@ -46,8 +51,6 @@ namespace ambition::resources {
 					return 3;
 				case PixelType::FLOAT:
 					return 4;
-				case PixelType::DOUBLE:
-					return 8;
 				default:
 					return 0;
 			}
